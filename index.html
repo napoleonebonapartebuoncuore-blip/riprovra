@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Spese Mensili</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --card: #1a1d29;
+    --card-2: #222636;
+    --text: #e8eaf2;
+    --muted: #8a90a6;
+    --accent: #6c8cff;
+    --green: #3ecf8e;
+    --red: #ff6b6b;
+    --border: #2b3044;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  h1 { font-size: 1.6rem; font-weight: 600; }
+  h1 span { color: var(--accent); }
+  .controls { display: flex; gap: 10px; align-items: center; }
+  select, input, button {
+    background: var(--card-2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+    outline: none;
+  }
+  select:focus, input:focus { border-color: var(--accent); }
+  button { cursor: pointer; transition: background .15s; }
+  button:hover { background: #2c3148; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.primary:hover { background: #5a7af0; }
+  button.danger { color: var(--red); }
+
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .stat-card .label { color: var(--muted); font-size: 0.85rem; margin-bottom: 8px; }
+  .stat-card .value { font-size: 1.8rem; font-weight: 700; }
+  .stat-card .value.green { color: var(--green); }
+  .stat-card .value.accent { color: var(--accent); }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 800px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .card h2 { font-size: 1.05rem; font-weight: 600; margin-bottom: 16px; }
+
+  .chart { display: flex; align-items: flex-end; gap: 8px; height: 220px; padding-top: 10px; }
+  .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; height: 100%; justify-content: flex-end; }
+  .bar {
+    width: 100%;
+    max-width: 48px;
+    background: linear-gradient(180deg, var(--accent), #4a5fc4);
+    border-radius: 6px 6px 0 0;
+    min-height: 4px;
+    position: relative;
+    transition: height .3s;
+  }
+  .bar .amount {
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.72rem;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .bar-label { font-size: 0.78rem; color: var(--muted); }
+
+  .cat-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .cat-name { width: 110px; font-size: 0.9rem; display: flex; align-items: center; gap: 8px; }
+  .cat-bar-bg { flex: 1; background: var(--card-2); border-radius: 6px; height: 22px; overflow: hidden; }
+  .cat-bar { height: 100%; border-radius: 6px; transition: width .3s; min-width: 2px; }
+  .cat-val { width: 90px; text-align: right; font-size: 0.88rem; color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 8px; font-size: 0.92rem; }
+  th { color: var(--muted); font-weight: 500; border-bottom: 1px solid var(--border); }
+  td { border-bottom: 1px solid var(--border); }
+  tr:last-child td { border-bottom: none; }
+  .amount-cell { color: var(--red); font-weight: 600; }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    color: #fff;
+  }
+  .empty { color: var(--muted); text-align: center; padding: 24px 0; }
+
+  form { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+  .field { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 130px; }
+  .field label { font-size: 0.78rem; color: var(--muted); }
+  .field input, .field select { width: 100%; }
+  .actions { display: flex; gap: 8px; }
+  .swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  footer { text-align: center; color: var(--muted); font-size: 0.8rem; margin-top: 24px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>💰 Dashboard <span>Spese Mensili</span></h1>
+    <div class="controls">
+      <select id="monthFilter" aria-label="Filtra per mese"></select>
+      <button id="exportBtn" title="Esporta dati in JSON">⬇ Esporta</button>
+      <button id="clearBtn" class="danger" title="Cancella tutti i dati">🗑 Svuota</button>
+    </div>
+  </header>
+
+  <section class="stats">
+    <div class="stat-card">
+      <div class="label">Totale del mese</div>
+      <div class="value accent" id="statMonth">0,00 €</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Media mensile (anno)</div>
+      <div class="value" id="statAvg">0,00 €</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Spesa massima (mese)</div>
+      <div class="value" id="statMax">0,00 €</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Numero operazioni (mese)</div>
+      <div class="value green" id="statCount">0</div>
+    </div>
+  </section>
+
+  <div class="grid-2">
+    <div class="card">
+      <h2>📈 Andamento mensile <span id="chartYear" style="color:var(--muted);font-weight:400"></span></h2>
+      <div class="chart" id="barChart"></div>
+    </div>
+    <div class="card">
+      <h2>🏷️ Ripartizione per categoria</h2>
+      <div id="catBreakdown"></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:24px">
+    <h2>➕ Aggiungi spesa</h2>
+    <form id="expenseForm">
+      <div class="field">
+        <label for="fDate">Data</label>
+        <input type="date" id="fDate" required>
+      </div>
+      <div class="field">
+        <label for="fDesc">Descrizione</label>
+        <input type="text" id="fDesc" placeholder="es. Spesa supermercato" required>
+      </div>
+      <div class="field">
+        <label for="fCat">Categoria</label>
+        <select id="fCat"></select>
+      </div>
+      <div class="field" style="max-width:150px">
+        <label for="fAmount">Importo (€)</label>
+        <input type="number" id="fAmount" step="0.01" min="0.01" placeholder="0,00" required>
+      </div>
+      <div class="actions">
+        <button type="submit" class="primary">Aggiungi</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>📋 Dettaglio spese</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Data</th>
+          <th>Descrizione</th>
+          <th>Categoria</th>
+          <th style="text-align:right">Importo</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="expenseTable"></tbody>
+    </table>
+    <div class="empty" id="emptyMsg" style="display:none">Nessuna spesa registrata per questo periodo.</div>
+  </div>
+
+  <footer>I dati sono salvati solo nel tuo browser (localStorage). Nessun dato viene inviato online.</footer>
+</div>
+
+<script>
+const CATEGORIES = [
+  { name: 'Casa',       color: '#6c8cff' },
+  { name: 'Spesa',      color: '#3ecf8e' },
+  { name: 'Trasporti',  color: '#ffb84d' },
+  { name: 'Svago',      color: '#e879f9' },
+  { name: 'Salute',     color: '#ff6b6b' },
+  { name: 'Altro',      color: '#8a90a6' }
+];
+const MONTHS = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+const STORAGE_KEY = 'dashboard-spese-v1';
+
+let expenses = load();
+let filter = 'all';
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
+}
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses)); }
+function catOf(name) { return CATEGORIES.find(c => c.name === name) || CATEGORIES[CATEGORIES.length - 1]; }
+function fmt(n) { return n.toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function initFilters() {
+  const monthSel = document.getElementById('monthFilter');
+  monthSel.innerHTML = '<option value="all">Tutti i mesi</option>';
+  MONTHS.forEach((m, i) => {
+    const opt = document.createElement('option');
+    opt.value = String(i + 1);
+    opt.textContent = m;
+    monthSel.appendChild(opt);
+  });
+  monthSel.addEventListener('change', e => { filter = e.target.value; render(); });
+
+  const catSel = document.getElementById('fCat');
+  CATEGORIES.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.name;
+    opt.textContent = c.name;
+    catSel.appendChild(opt);
+  });
+
+  document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
+}
+
+function filtered() {
+  return expenses
+    .filter(e => filter === 'all' || Number(e.date.slice(5, 7)) === Number(filter))
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+function renderStats(list) {
+  const total = list.reduce((s, e) => s + e.amount, 0);
+  document.getElementById('statMonth').textContent = fmt(total);
+
+  const year = new Date().getFullYear();
+  const yearTotal = expenses.filter(e => e.date.startsWith(year)).reduce((s, e) => s + e.amount, 0);
+  const monthsWithData = new Set(expenses.filter(e => e.date.startsWith(year)).map(e => e.date.slice(0, 7))).size;
+  document.getElementById('statAvg').textContent = fmt(monthsWithData ? yearTotal / monthsWithData : 0);
+
+  document.getElementById('statMax').textContent = list.length ? fmt(Math.max(...list.map(e => e.amount))) : fmt(0);
+  document.getElementById('statCount').textContent = list.length;
+}
+
+function renderChart() {
+  const year = new Date().getFullYear();
+  document.getElementById('chartYear').textContent = year;
+  const chart = document.getElementById('barChart');
+  const totals = Array(12).fill(0);
+  expenses.filter(e => e.date.startsWith(String(year)))
+          .forEach(e => totals[Number(e.date.slice(5, 7)) - 1] += e.amount);
+  const max = Math.max(...totals, 1);
+  chart.innerHTML = totals.map((t, i) => `
+    <div class="bar-wrap">
+      <div class="bar" style="height:${(t / max) * 100}%" title="${MONTHS[i]}: ${fmt(t)}">
+        ${t > 0 ? `<span class="amount">${fmt(t)}</span>` : ''}
+      </div>
+      <div class="bar-label">${MONTHS[i]}</div>
+    </div>`).join('');
+}
+
+function renderCategories(list) {
+  const box = document.getElementById('catBreakdown');
+  const totals = {};
+  list.forEach(e => totals[e.category] = (totals[e.category] || 0) + e.amount);
+  const entries = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+  const total = entries.reduce((s, [, v]) => s + v, 0);
+  if (!entries.length) {
+    box.innerHTML = '<div class="empty">Nessun dato da mostrare.</div>';
+    return;
+  }
+  box.innerHTML = entries.map(([name, val]) => {
+    const c = catOf(name);
+    const pct = (val / total) * 100;
+    return `<div class="cat-row">
+      <div class="cat-name"><span class="swatch" style="background:${c.color}"></span>${esc(name)}</div>
+      <div class="cat-bar-bg"><div class="cat-bar" style="width:${pct}%;background:${c.color}"></div></div>
+      <div class="cat-val">${fmt(val)} · ${pct.toFixed(0)}%</div>
+    </div>`;
+  }).join('');
+}
+
+function renderTable(list) {
+  const tbody = document.getElementById('expenseTable');
+  const empty = document.getElementById('emptyMsg');
+  if (!list.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  tbody.innerHTML = list.map(e => {
+    const c = catOf(e.category);
+    const d = e.date.split('-').reverse().join('/');
+    return `<tr>
+      <td>${d}</td>
+      <td>${esc(e.description)}</td>
+      <td><span class="badge" style="background:${c.color}">${esc(e.category)}</span></td>
+      <td class="amount-cell" style="text-align:right">${fmt(e.amount)}</td>
+      <td style="text-align:right"><button class="danger" data-id="${e.id}" title="Elimina">✕</button></td>
+    </tr>`;
+  }).join('');
+  tbody.querySelectorAll('button[data-id]').forEach(btn =>
+    btn.addEventListener('click', () => {
+      expenses = expenses.filter(e => String(e.id) !== btn.dataset.id);
+      save(); render();
+    })
+  );
+}
+
+function render() {
+  const list = filtered();
+  renderStats(list);
+  renderChart();
+  renderCategories(list);
+  renderTable(list);
+}
+
+document.getElementById('expenseForm').addEventListener('submit', e => {
+  e.preventDefault();
+  expenses.push({
+    id: Date.now() + Math.random().toString(36).slice(2, 7),
+    date: document.getElementById('fDate').value,
+    description: document.getElementById('fDesc').value.trim(),
+    category: document.getElementById('fCat').value,
+    amount: parseFloat(document.getElementById('fAmount').value)
+  });
+  save();
+  e.target.reset();
+  document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
+  render();
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(expenses, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'spese.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  if (confirm('Vuoi davvero cancellare tutte le spese? Questa azione non è reversibile.')) {
+    expenses = [];
+    save();
+    render();
+  }
+});
+
+initFilters();
+render();
+</script>
+</body>
+</html>
